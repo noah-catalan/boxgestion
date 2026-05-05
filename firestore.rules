@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, email, displayName, role (admin/mechanic), photoURL
+    //
+    // Collection: clients
+    // Fields: id, name, phone, email
+    //
+    // Collection: vehicles
+    // Fields: id, clientId, plate, model, brand
+    //
+    // Collection: workOrders
+    // Fields: id, vehicleId, clientId, description, status, boxId, mechanicId, startTime, endTime, totalLaborTime, parts, totalAmount, createdAt
+    //
+    // Collection: inventory
+    // Fields: id, name, stock, minStock, price
+    //
+    // Collection: boxes
+    // Fields: id, name, status (empty/occupied/ready/critical)
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((request.auth.token.email == "n.catalros@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isMechanic() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'mechanic';
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'photoURL']) &&
+             data.uid is string && data.email is string &&
+             data.role in ['admin', 'mechanic'];
+    }
+
+    function isValidClient(data) {
+      return hasRequiredFields(['name']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    function isValidWorkOrder(data) {
+      return hasRequiredFields(['vehicleId', 'clientId', 'status']) &&
+             data.status in ['reception', 'assigned', 'in-progress', 'ready', 'closed'];
+    }
+
+    function isValidPart(data) {
+      return hasRequiredFields(['name', 'stock', 'price']) &&
+             data.name is string && data.stock is number && data.price is number;
+    }
+
+    function isValidBox(data) {
+      return hasRequiredFields(['id', 'status']) &&
+             data.id is string && data.status in ['empty', 'occupied', 'ready', 'critical'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && (isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role));
+    }
+
+    match /clients/{clientId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /workOrders/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidWorkOrder(request.resource.data);
+      allow update: if isAuthenticated() && isValidWorkOrder(request.resource.data) && (isAdmin() || isMechanic());
+    }
+
+    match /inventory/{partId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isMechanic();
+    }
+
+    match /boxes/{boxId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isMechanic();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

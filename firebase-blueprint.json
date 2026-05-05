@@ -1,0 +1,120 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "App user (Admin or Mechanic)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "mechanic"] },
+        "photoURL": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Workshop client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "required": ["name"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Client vehicle",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "plate": { "type": "string" },
+        "model": { "type": "string" },
+        "brand": { "type": "string" }
+      },
+      "required": ["plate", "clientId"]
+    },
+    "WorkOrder": {
+      "title": "WorkOrder",
+      "description": "Repair order (OT)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "vehicleId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["reception", "assigned", "in-progress", "ready", "closed"] },
+        "boxId": { "type": "string" },
+        "mechanicId": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "totalLaborTime": { "type": "number" },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "partId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "price": { "type": "number" }
+            }
+          }
+        },
+        "totalAmount": { "type": "number" }
+      },
+      "required": ["vehicleId", "clientId", "status"]
+    },
+    "Part": {
+      "title": "Part",
+      "description": "Inventory part",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "stock": { "type": "number" },
+        "minStock": { "type": "number" },
+        "price": { "type": "number" }
+      },
+      "required": ["name", "stock", "price"]
+    },
+    "Box": {
+      "title": "Box",
+      "description": "Workshop elevator/box status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["empty", "occupied", "ready", "critical"] }
+      },
+      "required": ["id", "status"]
+    },
+    "CompanySettings": {
+      "title": "CompanySettings",
+      "description": "Workshop company settings",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "taxId": { "type": "string" },
+        "laborRate": { "type": "number" }
+      },
+      "required": ["name", "laborRate"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/clients/{clientId}": { "schema": "Client", "description": "Client database" },
+    "/vehicles/{vehicleId}": { "schema": "Vehicle", "description": "Vehicle database" },
+    "/workOrders/{orderId}": { "schema": "WorkOrder", "description": "Repair orders" },
+    "/inventory/{partId}": { "schema": "Part", "description": "Parts inventory" },
+    "/boxes/{boxId}": { "schema": "Box", "description": "Elevator status" },
+    "/settings/{settingId}": { "schema": "CompanySettings", "description": "Company settings" }
+  }
+}
