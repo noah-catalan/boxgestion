@@ -112,7 +112,15 @@ export const WorkshopMap: React.FC<WorkshopMapProps> = ({ workOrders, boxes, onD
 
                 {/* Vehicle Indicator */}
                 {order && (
-                  <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                  <motion.g 
+                    initial={{ scale: 0 }} 
+                    animate={{ scale: 1 }}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('orderId', order.id);
+                    }}
+                    className="cursor-grab active:cursor-grabbing"
+                  >
                     <rect x={x + 30} y={y + 60} width="200" height="90" rx="12" fill="#1e293b" />
                     <text x={x + 130} y={y + 105} textAnchor="middle" className="text-2xl fill-white font-black tracking-tighter">
                       {order.vehicleId.toUpperCase()}

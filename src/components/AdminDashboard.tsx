@@ -33,8 +33,14 @@ export const AdminDashboard: React.FC = () => {
   const receptionOrders = workOrders.filter(wo => wo.status === 'reception');
   const activeOrders = workOrders.filter(wo => wo.status !== 'closed' && wo.status !== 'reception');
 
-  const handleDrop = (orderId: string, boxId: string) => {
-    setShowAssignModal({ orderId, boxId });
+  const handleDrop = async (orderId: string, boxId: string) => {
+    const order = workOrders.find(o => o.id === orderId);
+    if (order && order.boxId) {
+      // If already assigned to a box, just move it and keep mechanic
+      await workshopService.assignWorkOrder(orderId, boxId, order.mechanicId || '');
+    } else {
+      setShowAssignModal({ orderId, boxId });
+    }
   };
 
   const handleAssign = async () => {
