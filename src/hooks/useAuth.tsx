@@ -36,7 +36,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (docSnap.exists()) {
             const existingProfile = docSnap.data() as UserProfile;
-            const isAdminEmail = firebaseUser.email === 'n.catalros@gmail.com';
+            const adminEmails = ['n.catalros@gmail.com', 'admin@boxgestion.com'];
+            const isAdminEmail = adminEmails.includes(firebaseUser.email || '');
             
             if (isAdminEmail && existingProfile.role !== 'admin') {
               const updatedProfile = { ...existingProfile, role: 'admin' as UserRole };
@@ -47,7 +48,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
           } else {
             // Default role for new users
-            const isAdminEmail = firebaseUser.email === 'n.catalros@gmail.com';
+            const adminEmails = ['n.catalros@gmail.com', 'admin@boxgestion.com'];
+            const isAdminEmail = adminEmails.includes(firebaseUser.email || '');
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',

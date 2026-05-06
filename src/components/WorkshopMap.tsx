@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { WorkOrder, Box } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { Wrench } from 'lucide-react';
 
 interface WorkshopMapProps {
   workOrders: WorkOrder[];
@@ -55,120 +56,115 @@ export const WorkshopMap: React.FC<WorkshopMapProps> = ({ workOrders, boxes, onD
     }
   };
 
-  // 2D grid coordinates (2 rows of 3)
-  const getBoxCoords = (index: number) => {
-    const row = Math.floor(index / 3);
-    const col = index % 3;
-    const x = 50 + col * 300;
-    const y = 80 + row * 220;
-    return { x, y };
-  };
-
   return (
-    <div className="relative w-full h-[600px] bg-slate-100 rounded-xl overflow-hidden border border-slate-200 shadow-inner">
-      <div className="absolute inset-0 p-8">
-        <svg viewBox="0 0 1000 600" className="w-full h-full">
-          {/* Boxes */}
-          {DEFAULT_BOXES.map((box, index) => {
-            const { x, y } = getBoxCoords(index);
-            const status = getBoxStatus(box.id);
-            const order = getOrderInBox(box.id);
-            const isOver = dragOver === box.id;
+    <div className="relative w-full min-h-[600px] bg-slate-100 rounded-2xl p-8 border border-slate-200 shadow-inner">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {DEFAULT_BOXES.map((box) => {
+          const status = getBoxStatus(box.id);
+          const order = getOrderInBox(box.id);
+          const isOver = dragOver === box.id;
 
-            return (
-              <g 
-                key={box.id} 
-                className="cursor-pointer transition-all duration-300"
-                onDragOver={(e) => handleDragOver(e, box.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, box.id)}
-                onClick={() => onBoxClick(box.id)}
-              >
-                {/* 2D Rect */}
-                <rect 
-                  x={x} 
-                  y={y} 
-                  width="260" 
-                  height="180" 
-                  rx="16"
-                  fill={isOver ? '#94a3b8' : status === 'empty' ? '#ffffff' : status === 'ready' ? '#dcfce7' : status === 'occupied' ? '#fef9c3' : status === 'critical' ? '#fee2e2' : '#ffffff'}
-                  stroke={isOver ? '#475569' : status === 'critical' ? '#ef4444' : '#cbd5e1'}
-                  strokeWidth={isOver ? "4" : status === 'critical' ? "3" : "2"}
-                  className="transition-colors duration-300 shadow-sm"
-                />
-                
-                {/* Label */}
-                <text 
-                  x={x + 130} 
-                  y={y + 35} 
-                  textAnchor="middle" 
-                  className={cn(
-                    "text-sm font-black uppercase tracking-tighter pointer-events-none select-none",
-                    status === 'critical' ? "fill-red-400" : "fill-slate-400"
+          return (
+            <div
+              key={box.id}
+              onDragOver={(e) => handleDragOver(e, box.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, box.id)}
+              onClick={() => onBoxClick(box.id)}
+              className={cn(
+                "relative h-48 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col",
+                isOver ? "border-blue-500 bg-blue-50 shadow-lg scale-[1.02]" : 
+                status === 'empty' ? "border-slate-200 bg-white hover:border-slate-300" :
+                status === 'ready' ? "border-green-200 bg-green-50/50" :
+                status === 'occupied' ? "border-yellow-200 bg-yellow-50/50" :
+                status === 'critical' ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"
+              )}
+            >
+              {/* Header */}
+              <div className="px-4 py-3 border-b border-inherit flex justify-between items-center bg-white/50">
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-tighter",
+                  status === 'critical' ? "text-red-500" : "text-slate-400"
+                )}>
+                  {box.name}
+                </span>
+                {status === 'critical' && (
+                  <span className="text-[8px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full uppercase">
+                    Mantenimiento
+                  </span>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 flex items-center justify-center p-4">
+                <AnimatePresence mode="wait">
+                  {order ? (
+                    <motion.div
+                      key={order.id}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('orderId', order.id);
+                      }}
+                      className="w-full bg-slate-900 rounded-xl p-4 shadow-xl cursor-grab active:cursor-grabbing group relative"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-mono text-slate-500">#{order.id.slice(-4).toUpperCase()}</span>
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          status === 'ready' ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-yellow-500 animate-pulse"
+                        )} />
+                      </div>
+                      <p className="text-xl font-black text-white tracking-tighter group-hover:text-blue-400 transition-colors">
+                        {order.vehicleId.toUpperCase()}
+                      </p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
+                        {order.clientName}
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <div className="text-center space-y-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                      <Wrench size={32} className="mx-auto text-slate-400" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {status === 'critical' ? 'BLOQUEADO' : 'DISPONIBLE'}
+                      </p>
+                    </div>
                   )}
-                >
-                  {box.name} {status === 'critical' && '(MANTENIMIENTO)'}
-                </text>
+                </AnimatePresence>
+              </div>
 
-                {/* Vehicle Indicator */}
-                {order && (
-                  <motion.g 
-                    initial={{ scale: 0 }} 
-                    animate={{ scale: 1 }}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('orderId', order.id);
-                    }}
-                    className="cursor-grab active:cursor-grabbing"
-                  >
-                    <rect x={x + 30} y={y + 60} width="200" height="90" rx="12" fill="#1e293b" />
-                    <text x={x + 130} y={y + 105} textAnchor="middle" className="text-2xl fill-white font-black tracking-tighter">
-                      {order.vehicleId.toUpperCase()}
-                    </text>
-                    <text x={x + 130} y={y + 130} textAnchor="middle" className="text-xs fill-slate-400 font-bold uppercase">
-                      {order.clientName}
-                    </text>
-                    {/* Status Dot */}
-                    <circle 
-                      cx={x + 215} 
-                      cy={y + 75} 
-                      r="8" 
-                      fill={status === 'ready' ? '#22c55e' : status === 'occupied' ? '#eab308' : '#ef4444'} 
-                      className="animate-pulse"
-                    />
-                  </motion.g>
-                )}
-
-                {/* Empty State Indicator */}
-                {!order && (
-                  <text 
-                    x={x + 130} 
-                    y={y + 105} 
-                    textAnchor="middle" 
-                    className="text-xs fill-slate-300 font-bold uppercase tracking-widest pointer-events-none select-none"
-                  >
-                    DISPONIBLE
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+              {/* Status Indicator Bar */}
+              <div className={cn(
+                "h-1.5 w-full",
+                status === 'empty' ? "bg-slate-100" :
+                status === 'ready' ? "bg-green-500" :
+                status === 'occupied' ? "bg-yellow-500" :
+                status === 'critical' ? "bg-red-500" : "bg-slate-100"
+              )} />
+            </div>
+          );
+        })}
       </div>
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur p-3 rounded-lg border border-slate-200 text-xs space-y-2 shadow-sm">
+      <div className="mt-8 flex flex-wrap gap-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl border border-slate-200 text-xs shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-slate-100 border border-slate-300" />
-          <span>Vacío</span>
+          <div className="w-3 h-3 rounded-full bg-slate-200" />
+          <span className="font-bold text-slate-600">Vacío</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-100 border border-yellow-300" />
-          <span>En Proceso</span>
+          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+          <span className="font-bold text-slate-600">En Proceso</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-100 border border-green-300" />
-          <span>Listo</span>
+          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <span className="font-bold text-slate-600">Listo</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <span className="font-bold text-slate-600">Mantenimiento</span>
         </div>
       </div>
     </div>
